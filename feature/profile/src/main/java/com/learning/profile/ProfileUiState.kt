@@ -10,5 +10,4 @@ data class ProfileUiState(
     val photoUrl: String? = null,
     val selectedImageUri: Uri? = null,
     val errors: Map<ProfileField, ProfileValidationError> = emptyMap(),
-    val snackbarError: ProfileError? = null,
 )

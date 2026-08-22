@@ -23,8 +23,6 @@ sealed interface ProfileEvent {
         val uri: Uri,
     ) : ProfileEvent
 
-    data object SnackbarErrorShown : ProfileEvent
-
     data object LoadProfile : ProfileEvent
 
     data object SaveClicked : ProfileEvent
