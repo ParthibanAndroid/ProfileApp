@@ -1,6 +1,5 @@
 package com.learning.profile
 
-import android.content.Context
 import android.net.Uri
 
 sealed interface ProfileEvent {
@@ -26,9 +25,11 @@ sealed interface ProfileEvent {
         val uri: Uri,
     ) : ProfileEvent
 
-    data class SaveClicked(val context: Context) : ProfileEvent
+    data object SnackbarErrorShown : ProfileEvent
 
-    data class UpdateClicked(val context: Context) : ProfileEvent
+    data object SaveClicked : ProfileEvent
+
+    data object UpdateClicked : ProfileEvent
 
     data object DeleteClicked : ProfileEvent
 }

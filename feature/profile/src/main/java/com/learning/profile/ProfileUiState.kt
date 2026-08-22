@@ -9,6 +9,6 @@ data class ProfileUiState(
     val phone: String = "",
     val photoUrl: String? = null,
     val selectedImageUri: Uri? = null,
-    val errors: Map<String, String> = emptyMap(),
-    val errorMessage: String? = null,
+    val errors: Map<ProfileField, ProfileValidationError> = emptyMap(),
+    val snackbarError: ProfileValidationError? = null,
 )
