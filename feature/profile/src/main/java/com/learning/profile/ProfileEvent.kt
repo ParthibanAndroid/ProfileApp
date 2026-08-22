@@ -19,8 +19,6 @@ sealed interface ProfileEvent {
         val value: String,
     ) : ProfileEvent
 
-    data object ProfileImageClicked : ProfileEvent
-
     data class ProfileImageSelected(
         val uri: Uri,
     ) : ProfileEvent
