@@ -25,6 +25,8 @@ sealed interface ProfileEvent {
 
     data object SnackbarErrorShown : ProfileEvent
 
+    data object LoadProfile : ProfileEvent
+
     data object SaveClicked : ProfileEvent
 
     data object UpdateClicked : ProfileEvent
