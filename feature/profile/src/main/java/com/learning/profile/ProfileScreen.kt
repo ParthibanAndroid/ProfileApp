@@ -40,29 +40,47 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember {
-        SnackbarHostState()
-    }
-    val snackbarMessage =
-        when (uiState.snackbarError) {
-            ProfileValidationError.ImageRequired -> {
-                stringResource(R.string.select_photo_required_error)
-            }
-
-            // Future snackbar errors go here
-            else -> {
-                null
-            }
+    val snackbarHostState =
+        remember {
+            SnackbarHostState()
         }
+    val imageRequiredMessage =
+        stringResource(R.string.select_photo_required_error)
+    val networkErrorMessage =
+        stringResource(R.string.network_error)
+    val unknownErrorMessage =
+        stringResource(R.string.unknown_error)
 
     LaunchedEffect(Unit) {
         viewModel.onEvent(ProfileEvent.LoadProfile)
     }
 
-    LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            viewModel.onEvent(ProfileEvent.SnackbarErrorShown)
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is ProfileEffect.ShowSnackbar -> {
+                    val message =
+                        when (effect.error) {
+                            ProfileSnackbarError.ImageRequired -> {
+                                imageRequiredMessage
+                            }
+
+                            ProfileSnackbarError.Network -> {
+                                networkErrorMessage
+                            }
+
+                            is ProfileSnackbarError.Server -> {
+                                effect.error.message ?: unknownErrorMessage
+                            }
+
+                            ProfileSnackbarError.Unknown -> {
+                                unknownErrorMessage
+                            }
+                        }
+
+                    snackbarHostState.showSnackbar(message)
+                }
+            }
         }
     }
 

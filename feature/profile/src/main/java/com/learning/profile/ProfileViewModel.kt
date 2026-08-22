@@ -3,8 +3,11 @@ package com.learning.profile
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.learning.network.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -18,6 +21,9 @@ class ProfileViewModel
     ) : ViewModel() {
         private var _uiState = MutableStateFlow(ProfileUiState())
         val uiState = _uiState.asStateFlow()
+
+        private var _effect = MutableSharedFlow<ProfileEffect>()
+        val effect = _effect.asSharedFlow()
 
         private fun validate(state: ProfileUiState): Map<ProfileField, ProfileValidationError> {
             val errors = mutableMapOf<ProfileField, ProfileValidationError>()
@@ -46,25 +52,32 @@ class ProfileViewModel
             return errors
         }
 
-        private fun validateProfile(): Boolean {
+        private suspend fun validateProfile(): Boolean {
             val state = _uiState.value
             val errors = validate(state = state)
 
-            val imageError =
+            val updatedErrors =
                 if (state.selectedImageUri == null) {
-                    ProfileValidationError.ImageRequired
+                    errors + (ProfileField.IMAGE to ProfileValidationError.ImageRequired)
                 } else {
-                    null
+                    errors
                 }
 
             _uiState.update {
                 it.copy(
-                    errors = errors,
-                    snackbarError = imageError,
+                    errors = updatedErrors,
                 )
             }
 
-            return errors.isEmpty() && imageError == null
+            if (state.selectedImageUri == null) {
+                _effect.emit(
+                    ProfileEffect.ShowSnackbar(
+                        ProfileSnackbarError.ImageRequired,
+                    ),
+                )
+            }
+
+            return updatedErrors.isEmpty()
         }
 
         fun onEvent(event: ProfileEvent) {
@@ -115,14 +128,18 @@ class ProfileViewModel
                 }
 
                 is ProfileEvent.SaveClicked -> {
-                    if (!validateProfile()) {
-                        return
+                    viewModelScope.launch {
+                        if (!validateProfile()) {
+                            return@launch
+                        }
                     }
                 }
 
                 is ProfileEvent.UpdateClicked -> {
-                    if (!validateProfile()) {
-                        return
+                    viewModelScope.launch {
+                        if (!validateProfile()) {
+                            return@launch
+                        }
                     }
                 }
 
@@ -135,20 +152,49 @@ class ProfileViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true) }
 
-                try {
-                    val profile = repository.getProfile(id = "be5c2f88-f1e6-48a9-ab89-56286dae8452")
+                val result = repository.getProfile(id = "be5c2f88-f1e6-48a9-ab89-56286dae8452")
 
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            name = profile.name,
-                            email = profile.email,
-                            phone = profile.phone,
-                            photoUrl = profile.photoUrl,
-                        )
+                when (result) {
+                    is NetworkResult.Success -> {
+                        val profile = result.data
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                name = profile.name,
+                                email = profile.email,
+                                phone = profile.phone,
+                                photoUrl = profile.photoUrl,
+                            )
+                        }
                     }
-                } catch (e: Exception) {
-                    _uiState.update { it.copy(isLoading = false, snackbarError = ProfileValidationError.NetworkError) }
+
+                    is NetworkResult.HttpError -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                snackbarError = ProfileError.Server(code = result.code, message = result.message),
+                            )
+                        }
+                    }
+
+                    is NetworkResult.NetworkError -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                snackbarError = ProfileError.Network,
+                            )
+                        }
+                    }
+
+                    is NetworkResult.UnknownError -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                snackbarError = ProfileError.Unknown,
+                            )
+                        }
+                    }
                 }
             }
         }
