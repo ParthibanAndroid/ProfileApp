@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -24,8 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 @Composable
 fun ProfileScreen(
@@ -44,14 +43,23 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = SnackbarHostState()
     val scope = rememberCoroutineScope()
-    val photoUrlLabel = stringResource(id = R.string.photo_url_label)
+    val snackbarMessage =
+        when (uiState.snackbarError) {
+            ProfileValidationError.ImageRequired -> {
+                stringResource(R.string.select_photo_required_error)
+            }
 
-    LaunchedEffect(uiState.errors) {
-        if (uiState.errors.containsKey(photoUrlLabel.lowercase(Locale.getDefault()))) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = uiState.errors[photoUrlLabel.lowercase(Locale.getDefault())] ?: "",
-                )
+            // Future snackbar errors go here
+            else -> {
+                null
+            }
+        }
+
+    LaunchedEffect(snackbarMessage) {
+        scope.launch {
+            snackbarMessage?.let { message ->
+                snackbarHostState.showSnackbar(message)
+                viewModel.onEvent(ProfileEvent.SnackbarErrorShown)
             }
         }
     }
@@ -64,9 +72,9 @@ fun ProfileScreen(
     ) { innerPadding ->
         when {
             uiState.isLoading -> {
-            }
-
-            uiState.errorMessage != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
 
             else -> {
@@ -93,7 +101,7 @@ private fun ProfileContent(
     phone: String,
     photoUrl: String?,
     selectedImageUri: Uri?,
-    errors: Map<String, String>,
+    errors: Map<ProfileField, ProfileValidationError>,
     event: (ProfileEvent) -> Unit,
 ) {
     val imagePickLauncher =
@@ -107,7 +115,6 @@ private fun ProfileContent(
     val nameLabel = stringResource(id = R.string.name_label)
     val emailLabel = stringResource(id = R.string.email_label)
     val phoneLabel = stringResource(id = R.string.phone_label)
-    val context = LocalContext.current
 
     Column(
         modifier =
@@ -135,8 +142,21 @@ private fun ProfileContent(
             onValueChange = {
                 event(ProfileEvent.NameChanged(it))
             },
-            isError = errors.containsKey(nameLabel.lowercase(LocalLocale.current.platformLocale)),
-            error = errors[nameLabel.lowercase(LocalLocale.current.platformLocale)] ?: "",
+            isError = errors.containsKey(ProfileField.NAME),
+            error =
+                when (errors[ProfileField.NAME]) {
+                    ProfileValidationError.NameRequired -> {
+                        stringResource(R.string.name_required_error)
+                    }
+
+                    ProfileValidationError.NameTooShort -> {
+                        stringResource(R.string.name_length_error)
+                    }
+
+                    else -> {
+                        ""
+                    }
+                },
             keyboardType = KeyboardType.PersonName,
             imeAction = ImeAction.Next,
         )
@@ -146,8 +166,21 @@ private fun ProfileContent(
             onValueChange = {
                 event(ProfileEvent.EmailChanged(it))
             },
-            isError = errors.containsKey(emailLabel.lowercase(LocalLocale.current.platformLocale)),
-            error = errors[emailLabel.lowercase(LocalLocale.current.platformLocale)] ?: "",
+            isError = errors.containsKey(ProfileField.EMAIL),
+            error =
+                when (errors[ProfileField.EMAIL]) {
+                    ProfileValidationError.EmailRequired -> {
+                        stringResource(R.string.email_required_error)
+                    }
+
+                    ProfileValidationError.EmailInvalid -> {
+                        stringResource(R.string.invalid_email_error)
+                    }
+
+                    else -> {
+                        ""
+                    }
+                },
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
         )
@@ -157,8 +190,21 @@ private fun ProfileContent(
             onValueChange = {
                 event(ProfileEvent.PhoneChanged(it))
             },
-            isError = errors.containsKey(phoneLabel.lowercase(LocalLocale.current.platformLocale)),
-            error = errors[phoneLabel.lowercase(LocalLocale.current.platformLocale)] ?: "",
+            isError = errors.containsKey(ProfileField.PHONE),
+            error =
+                when (errors[ProfileField.PHONE]) {
+                    ProfileValidationError.PhoneRequired -> {
+                        stringResource(R.string.phone_required_error)
+                    }
+
+                    ProfileValidationError.PhoneTooShort -> {
+                        stringResource(R.string.phone_length_error)
+                    }
+
+                    else -> {
+                        ""
+                    }
+                },
             keyboardType = KeyboardType.Phone,
             imeAction = ImeAction.Done,
         )
@@ -171,12 +217,12 @@ private fun ProfileContent(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Button(modifier = Modifier.weight(1f), onClick = {
-                event(ProfileEvent.SaveClicked(context = context))
+                event(ProfileEvent.SaveClicked)
             }) {
                 Text(text = stringResource(id = R.string.save_button))
             }
             Button(modifier = Modifier.weight(1f), onClick = {
-                event(ProfileEvent.UpdateClicked(context = context))
+                event(ProfileEvent.UpdateClicked)
             }) {
                 Text(text = stringResource(id = R.string.update_button))
             }

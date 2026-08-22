@@ -1,13 +1,11 @@
 package com.learning.profile
 
-import android.content.Context
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -17,75 +15,83 @@ class ProfileViewModel
         private var _uiState = MutableStateFlow(ProfileUiState())
         val uiState = _uiState.asStateFlow()
 
-        private fun validate(
-            context: Context,
-            state: ProfileUiState,
-        ): Map<String, String> {
-            val errors = mutableMapOf<String, String>()
-            val nameLabel = context.getString(R.string.name_label)
-            val emailLabel = context.getString(R.string.email_label)
-            val phoneLabel = context.getString(R.string.phone_label)
-            val photoUrlLabel = context.getString(R.string.photo_url_label)
+        private fun validate(state: ProfileUiState): Map<ProfileField, ProfileValidationError> {
+            val errors = mutableMapOf<ProfileField, ProfileValidationError>()
 
             if (state.name.isBlank()) {
-                errors[nameLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.name_required_error)
+                errors[ProfileField.NAME] = ProfileValidationError.NameRequired
             } else if (state.name.length < 6) {
-                errors[nameLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.name_length_error)
+                errors[ProfileField.NAME] = ProfileValidationError.NameTooShort
             }
 
             if (state.email.isBlank()) {
-                errors[emailLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.email_required_error)
+                errors[ProfileField.EMAIL] = ProfileValidationError.EmailRequired
             } else if (!Patterns.EMAIL_ADDRESS
                     .matcher(state.email)
                     .matches()
             ) {
-                errors[emailLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.invalid_email_error)
+                errors[ProfileField.EMAIL] = ProfileValidationError.EmailInvalid
             }
 
             if (state.phone.isBlank()) {
-                errors[phoneLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.phone_required_error)
+                errors[ProfileField.PHONE] = ProfileValidationError.PhoneRequired
             } else if (state.phone.length < 10) {
-                errors[phoneLabel.lowercase(Locale.getDefault())] =
-                    context.getString(R.string.phone_length_error)
-            }
-
-            if (state.selectedImageUri == null) {
-                errors[photoUrlLabel.lowercase(Locale.getDefault())] = context.getString(R.string.select_photo_required_error)
+                errors[ProfileField.PHONE] = ProfileValidationError.PhoneTooShort
             }
 
             return errors
         }
 
-        private fun validateProfile(context: Context): Boolean {
-            val errors = validate(context = context, state = _uiState.value)
+        private fun validateProfile(): Boolean {
+            val state = _uiState.value
+            val errors = validate(state = state)
 
-            if (errors.isNotEmpty()) {
-                _uiState.update {
-                    it.copy(errors = errors)
+            val imageError =
+                if (state.selectedImageUri == null) {
+                    ProfileValidationError.ImageRequired
+                } else {
+                    null
                 }
-                return false
+
+            _uiState.update {
+                it.copy(
+                    errors = errors,
+                    snackbarError = imageError,
+                )
             }
 
-            return true
+            return errors.isEmpty() && imageError == null
         }
 
         fun onEvent(event: ProfileEvent) {
             when (event) {
                 is ProfileEvent.NameChanged -> {
-                    _uiState.update { it.copy(name = event.value, errors = it.errors - "name") }
+                    _uiState.update {
+                        it.copy(
+                            name = event.value,
+                            errors = it.errors - ProfileField.NAME,
+                        )
+                    }
                 }
 
                 is ProfileEvent.EmailChanged -> {
-                    _uiState.update { it.copy(email = event.value, errors = it.errors - "email") }
+                    _uiState.update {
+                        it.copy(
+                            email = event.value,
+                            errors =
+                                it.errors - ProfileField.EMAIL,
+                        )
+                    }
                 }
 
                 is ProfileEvent.PhoneChanged -> {
-                    _uiState.update { it.copy(phone = event.value, errors = it.errors - "phone") }
+                    _uiState.update {
+                        it.copy(
+                            phone = event.value,
+                            errors =
+                                it.errors - ProfileField.PHONE,
+                        )
+                    }
                 }
 
                 is ProfileEvent.PhotoUrlChanged -> {
@@ -96,17 +102,21 @@ class ProfileViewModel
                 }
 
                 is ProfileEvent.ProfileImageSelected -> {
-                    _uiState.update { it.copy(selectedImageUri = event.uri) }
+                    _uiState.update { it.copy(selectedImageUri = event.uri, snackbarError = null) }
+                }
+
+                is ProfileEvent.SnackbarErrorShown -> {
+                    _uiState.update { it.copy(snackbarError = null) }
                 }
 
                 is ProfileEvent.SaveClicked -> {
-                    if (!validateProfile(context = event.context)) {
+                    if (!validateProfile()) {
                         return
                     }
                 }
 
                 is ProfileEvent.UpdateClicked -> {
-                    if (!validateProfile(context = event.context)) {
+                    if (!validateProfile()) {
                         return
                     }
                 }
