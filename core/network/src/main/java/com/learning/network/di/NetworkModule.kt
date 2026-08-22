@@ -13,7 +13,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "http://192.168.0.103:8080/"
 
     @Provides
     @Singleton
@@ -31,7 +31,5 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideProfileApi(retrofit: Retrofit): ProfileApi {
-        return retrofit.create(ProfileApi::class.java)
-    }
+    fun provideProfileApi(retrofit: Retrofit): ProfileApi = retrofit.create(ProfileApi::class.java)
 }

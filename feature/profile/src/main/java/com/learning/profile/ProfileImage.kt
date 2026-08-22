@@ -22,6 +22,8 @@ fun ProfileImage(
     selectedImageUri: Uri?,
     onProfileImageClick: (String) -> Unit,
 ) {
+    val imageUrl = "http://192.168.0.103:8080$photoUrl"
+
     Box(
         modifier =
             modifier.clickable(onClick = {
@@ -33,10 +35,10 @@ fun ProfileImage(
                 Modifier
                     .size(100.dp)
                     .clip(CircleShape),
-            model = selectedImageUri ?: photoUrl,
+            model = selectedImageUri ?: imageUrl,
             placeholder = painterResource(R.drawable.ic_profile),
             error = painterResource(R.drawable.ic_profile),
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.FillBounds,
             contentDescription = "Profile Image",
         )
         Icon(

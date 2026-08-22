@@ -14,6 +14,4 @@ sealed interface ProfileValidationError {
     data object PhoneTooShort : ProfileValidationError
 
     data object ImageRequired : ProfileValidationError
-
-    data object NetworkError: ProfileValidationError
 }

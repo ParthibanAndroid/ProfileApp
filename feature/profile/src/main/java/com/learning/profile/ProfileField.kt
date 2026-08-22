@@ -4,4 +4,5 @@ enum class ProfileField {
     NAME,
     EMAIL,
     PHONE,
+    IMAGE,
 }
