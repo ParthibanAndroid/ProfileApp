@@ -7,7 +7,7 @@ sealed interface ProfileSnackbarError {
 
     data class Server(
         val code: Int,
-        val message: String?,
+        val message: String? = null,
     ) : ProfileSnackbarError
 
     data object Unknown : ProfileSnackbarError

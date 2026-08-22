@@ -116,11 +116,7 @@ class ProfileViewModel
                 }
 
                 is ProfileEvent.ProfileImageSelected -> {
-                    _uiState.update { it.copy(selectedImageUri = event.uri, snackbarError = null) }
-                }
-
-                is ProfileEvent.SnackbarErrorShown -> {
-                    _uiState.update { it.copy(snackbarError = null) }
+                    _uiState.update { it.copy(selectedImageUri = event.uri) }
                 }
 
                 is ProfileEvent.LoadProfile -> {
@@ -170,30 +166,15 @@ class ProfileViewModel
                     }
 
                     is NetworkResult.HttpError -> {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                snackbarError = ProfileError.Server(code = result.code, message = result.message),
-                            )
-                        }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Server(code = result.code, message = result.message)))
                     }
 
                     is NetworkResult.NetworkError -> {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                snackbarError = ProfileError.Network,
-                            )
-                        }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Network))
                     }
 
                     is NetworkResult.UnknownError -> {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                snackbarError = ProfileError.Unknown,
-                            )
-                        }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Unknown))
                     }
                 }
             }
