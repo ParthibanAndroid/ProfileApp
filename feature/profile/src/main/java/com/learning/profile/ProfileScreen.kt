@@ -55,6 +55,10 @@ fun ProfileScreen(
             }
         }
 
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(ProfileEvent.LoadProfile)
+    }
+
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.let { message ->
             snackbarHostState.showSnackbar(message)

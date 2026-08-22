@@ -2,16 +2,20 @@ package com.learning.profile
 
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel
     @Inject
-    constructor() : ViewModel() {
+    constructor(
+        private val repository: ProfileRepository,
+    ) : ViewModel() {
         private var _uiState = MutableStateFlow(ProfileUiState())
         val uiState = _uiState.asStateFlow()
 
@@ -106,6 +110,10 @@ class ProfileViewModel
                     _uiState.update { it.copy(snackbarError = null) }
                 }
 
+                is ProfileEvent.LoadProfile -> {
+                    loadProfile()
+                }
+
                 is ProfileEvent.SaveClicked -> {
                     if (!validateProfile()) {
                         return
@@ -119,6 +127,28 @@ class ProfileViewModel
                 }
 
                 is ProfileEvent.DeleteClicked -> {
+                }
+            }
+        }
+
+        fun loadProfile() {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+
+                try {
+                    val profile = repository.getProfile(id = "be5c2f88-f1e6-48a9-ab89-56286dae8452")
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            name = profile.name,
+                            email = profile.email,
+                            phone = profile.phone,
+                            photoUrl = profile.photoUrl,
+                        )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(isLoading = false, snackbarError = ProfileValidationError.NetworkError) }
                 }
             }
         }
