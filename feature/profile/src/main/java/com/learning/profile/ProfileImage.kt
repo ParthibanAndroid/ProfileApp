@@ -1,5 +1,6 @@
 package com.learning.profile
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -17,23 +18,31 @@ import coil3.compose.AsyncImage
 @Composable
 fun ProfileImage(
     modifier: Modifier = Modifier,
-    onProfileImageClick: () -> Unit
+    photoUrl: String?,
+    selectedImageUri: Uri?,
+    onProfileImageClick: (String) -> Unit,
 ) {
-    Box(modifier = modifier.clickable(onClick = onProfileImageClick)) {
+    Box(
+        modifier =
+            modifier.clickable(onClick = {
+                onProfileImageClick("")
+            }),
+    ) {
         AsyncImage(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape),
-            model = "",
+            modifier =
+                Modifier
+                    .size(100.dp)
+                    .clip(CircleShape),
+            model = selectedImageUri ?: photoUrl,
             placeholder = painterResource(R.drawable.ic_profile),
             error = painterResource(R.drawable.ic_profile),
             contentScale = ContentScale.Fit,
-            contentDescription = "Profile image content description",
+            contentDescription = "Profile Image",
         )
         Icon(
             modifier = Modifier.align(Alignment.TopEnd),
             painter = painterResource(R.drawable.ic_edit),
-            contentDescription = "Edit icon content description",
+            contentDescription = "Edit Icon",
         )
     }
 }
