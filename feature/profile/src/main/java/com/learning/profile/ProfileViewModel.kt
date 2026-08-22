@@ -98,9 +98,6 @@ class ProfileViewModel
                     _uiState.update { it.copy(photoUrl = event.value) }
                 }
 
-                is ProfileEvent.ProfileImageClicked -> {
-                }
-
                 is ProfileEvent.ProfileImageSelected -> {
                     _uiState.update { it.copy(selectedImageUri = event.uri, snackbarError = null) }
                 }

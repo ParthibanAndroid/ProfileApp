@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,7 +33,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
@@ -41,8 +40,9 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = SnackbarHostState()
-    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
     val snackbarMessage =
         when (uiState.snackbarError) {
             ProfileValidationError.ImageRequired -> {
@@ -56,11 +56,9 @@ fun ProfileScreen(
         }
 
     LaunchedEffect(snackbarMessage) {
-        scope.launch {
-            snackbarMessage?.let { message ->
-                snackbarHostState.showSnackbar(message)
-                viewModel.onEvent(ProfileEvent.SnackbarErrorShown)
-            }
+        snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.onEvent(ProfileEvent.SnackbarErrorShown)
         }
     }
 
