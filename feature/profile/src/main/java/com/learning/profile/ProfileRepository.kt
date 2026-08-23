@@ -21,5 +21,5 @@ interface ProfileRepository {
         file: File,
     ): NetworkResult<ProfileResponse>
 
-    suspend fun deleteProfile(id: String): NetworkResult<ProfileResponse>
+    suspend fun deleteProfile(id: String): NetworkResult<Unit>
 }

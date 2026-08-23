@@ -55,7 +55,7 @@ class ProfileRepositoryImpl
                 api.uploadProfileImage(id = id, file = multipartFile)
             }
 
-        override suspend fun deleteProfile(id: String): NetworkResult<ProfileResponse> =
+        override suspend fun deleteProfile(id: String): NetworkResult<Unit> =
             safeApiCall {
                 api.deleteProfile(id = id)
             }

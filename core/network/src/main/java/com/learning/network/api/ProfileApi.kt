@@ -40,5 +40,5 @@ interface ProfileApi {
     @DELETE("api/v1/profile/{id}")
     suspend fun deleteProfile(
         @Path("id") id: String,
-    ): ProfileResponse
+    )
 }
