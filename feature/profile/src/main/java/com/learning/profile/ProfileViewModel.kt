@@ -4,6 +4,8 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.learning.network.NetworkResult
+import com.learning.network.model.CreateProfileRequest
+import com.learning.network.model.UpdateProfileRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +20,7 @@ class ProfileViewModel
     @Inject
     constructor(
         private val repository: ProfileRepository,
+        private val imageFileProvider: ProfileImageFileProvider,
     ) : ViewModel() {
         private var _uiState = MutableStateFlow(ProfileUiState())
         val uiState = _uiState.asStateFlow()
@@ -124,33 +127,28 @@ class ProfileViewModel
                 }
 
                 is ProfileEvent.SaveClicked -> {
-                    viewModelScope.launch {
-                        if (!validateProfile()) {
-                            return@launch
-                        }
-                    }
+                    saveProfile()
                 }
 
                 is ProfileEvent.UpdateClicked -> {
-                    viewModelScope.launch {
-                        if (!validateProfile()) {
-                            return@launch
-                        }
-                    }
+                    updateProfile()
                 }
 
                 is ProfileEvent.DeleteClicked -> {
+                    deleteProfile()
                 }
             }
         }
 
         fun loadProfile() {
             viewModelScope.launch {
+                val state = _uiState.value
+
+                val profileId = state.id ?: return@launch
+
                 _uiState.update { it.copy(isLoading = true) }
 
-                val result = repository.getProfile(id = "be5c2f88-f1e6-48a9-ab89-56286dae8452")
-
-                when (result) {
+                when (val result = repository.getProfile(id = profileId)) {
                     is NetworkResult.Success -> {
                         val profile = result.data
 
@@ -161,19 +159,306 @@ class ProfileViewModel
                                 email = profile.email,
                                 phone = profile.phone,
                                 photoUrl = profile.photoUrl,
+                                selectedImageUri = null,
                             )
                         }
                     }
 
                     is NetworkResult.HttpError -> {
-                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Server(code = result.code, message = result.message)))
+                        _uiState.update { it.copy(isLoading = false) }
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                error =
+                                    ProfileSnackbarError.Server(
+                                        code = result.code,
+                                        message = result.message,
+                                    ),
+                            ),
+                        )
                     }
 
                     is NetworkResult.NetworkError -> {
+                        _uiState.update { it.copy(isLoading = false) }
                         _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Network))
                     }
 
                     is NetworkResult.UnknownError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Unknown))
+                    }
+                }
+            }
+        }
+
+        fun saveProfile() {
+            viewModelScope.launch {
+                if (!validateProfile()) {
+                    return@launch
+                }
+
+                _uiState.update { it.copy(isLoading = true) }
+
+                val state = _uiState.value
+
+                val request =
+                    CreateProfileRequest(
+                        name = state.name,
+                        email = state.email,
+                        phone = state.phone,
+                        photoUrl = state.photoUrl,
+                    )
+
+                when (val result = repository.createProfile(request)) {
+                    is NetworkResult.Success -> {
+                        val profile = result.data
+
+                        _uiState.update {
+                            it.copy(
+                                id = profile.id,
+                                name = profile.name,
+                                email = profile.email,
+                                phone = profile.phone,
+                                photoUrl = profile.photoUrl,
+                            )
+                        }
+
+                        uploadSelectedImageIfNeeded(profileId = profile.id, isFrom = "Create")
+                    }
+
+                    is NetworkResult.HttpError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                error =
+                                    ProfileSnackbarError.Server(
+                                        code = result.code,
+                                        message = result.message,
+                                    ),
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.NetworkError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Network))
+                    }
+
+                    is NetworkResult.UnknownError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Unknown))
+                    }
+                }
+            }
+        }
+
+        fun updateProfile() {
+            viewModelScope.launch {
+                if (!validateProfile()) {
+                    return@launch
+                }
+
+                val state = _uiState.value
+
+                val profileId = state.id ?: return@launch
+
+                _uiState.update { it.copy(isLoading = true) }
+
+                val request =
+                    UpdateProfileRequest(
+                        name = state.name,
+                        email = state.email,
+                        phone = state.phone,
+                        photoUrl = state.photoUrl,
+                    )
+
+                when (val result = repository.updateProfile(id = profileId, request = request)) {
+                    is NetworkResult.Success -> {
+                        val profile = result.data
+
+                        _uiState.update {
+                            it.copy(
+                                id = profile.id,
+                                name = profile.name,
+                                email = profile.email,
+                                phone = profile.phone,
+                                photoUrl = profile.photoUrl,
+                            )
+                        }
+
+                        uploadSelectedImageIfNeeded(profileId = profileId, isFrom = "Update")
+                    }
+
+                    is NetworkResult.HttpError -> {
+                        _uiState.update {
+                            it.copy(isLoading = false)
+                        }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                ProfileSnackbarError.Server(
+                                    code = result.code,
+                                    message = result.message,
+                                ),
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.NetworkError -> {
+                        _uiState.update {
+                            it.copy(isLoading = false)
+                        }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                ProfileSnackbarError.Network,
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.UnknownError -> {
+                        _uiState.update {
+                            it.copy(isLoading = false)
+                        }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                ProfileSnackbarError.Unknown,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+        fun deleteProfile() {
+            viewModelScope.launch {
+                val profileId = _uiState.value.id ?: return@launch
+
+                _uiState.update { it.copy(isLoading = true) }
+
+                when (val result = repository.deleteProfile(id = profileId)) {
+                    is NetworkResult.Success -> {
+                        val profile = result.data
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                id = null,
+                                name = profile.name,
+                                email = profile.email,
+                                phone = profile.phone,
+                                photoUrl = profile.photoUrl,
+                                selectedImageUri = null,
+                            )
+                        }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                ProfileSnackbarError.ProfileDeleted,
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.HttpError -> {
+                        _uiState.update {
+                            it.copy(isLoading = false)
+                        }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                ProfileSnackbarError.Server(
+                                    code = result.code,
+                                    message = result.message,
+                                ),
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.NetworkError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Network))
+                    }
+
+                    is NetworkResult.UnknownError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Unknown))
+                    }
+                }
+            }
+        }
+
+        fun uploadSelectedImageIfNeeded(
+            profileId: String,
+            isFrom: String,
+        ) {
+            viewModelScope.launch {
+                val imageUri = _uiState.value.selectedImageUri
+
+                if (imageUri == null) {
+                    _uiState.update { it.copy(isLoading = false, selectedImageUri = null) }
+
+                    return@launch
+                }
+                val file = imageFileProvider.createFileFromUri(imageUri)
+
+                when (
+                    val uploadResult =
+                        repository.uploadProfileImage(id = profileId, file = file)
+                ) {
+                    is NetworkResult.Success -> {
+                        val updatedProfile = uploadResult.data
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                name = updatedProfile.name,
+                                email = updatedProfile.email,
+                                phone = updatedProfile.phone,
+                                photoUrl = updatedProfile.photoUrl,
+                                selectedImageUri = null,
+                            )
+                        }
+
+                        if (isFrom == "Create") {
+                            _effect.emit(
+                                ProfileEffect.ShowSnackbar(
+                                    ProfileSnackbarError.ProfileCreated,
+                                ),
+                            )
+                        } else {
+                            _effect.emit(
+                                ProfileEffect.ShowSnackbar(
+                                    ProfileSnackbarError.ProfileUpdated,
+                                ),
+                            )
+                        }
+                    }
+
+                    is NetworkResult.HttpError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+
+                        _effect.emit(
+                            ProfileEffect.ShowSnackbar(
+                                error =
+                                    ProfileSnackbarError.Server(
+                                        code = uploadResult.code,
+                                        message = uploadResult.message,
+                                    ),
+                            ),
+                        )
+                    }
+
+                    is NetworkResult.NetworkError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+
+                        _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Network))
+                    }
+
+                    is NetworkResult.UnknownError -> {
+                        _uiState.update { it.copy(isLoading = false) }
+
                         _effect.emit(ProfileEffect.ShowSnackbar(error = ProfileSnackbarError.Unknown))
                     }
                 }
