@@ -338,16 +338,14 @@ class ProfileViewModel
 
                 when (val result = repository.deleteProfile(id = profileId)) {
                     is NetworkResult.Success -> {
-                        val profile = result.data
-
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 id = null,
-                                name = profile.name,
-                                email = profile.email,
-                                phone = profile.phone,
-                                photoUrl = profile.photoUrl,
+                                name = "",
+                                email = "",
+                                phone = "",
+                                photoUrl = "",
                                 selectedImageUri = null,
                             )
                         }
