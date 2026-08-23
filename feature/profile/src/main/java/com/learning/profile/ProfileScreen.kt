@@ -46,6 +46,12 @@ fun ProfileScreen(
         }
     val imageRequiredMessage =
         stringResource(R.string.select_photo_required_error)
+    val profileCreatedMessage =
+        stringResource(R.string.profile_created)
+    val profileUpdatedMessage =
+        stringResource(R.string.profile_updated)
+    val profileDeletedMessage =
+        stringResource(R.string.profile_deleted)
     val networkErrorMessage =
         stringResource(R.string.network_error)
     val unknownErrorMessage =
@@ -63,6 +69,18 @@ fun ProfileScreen(
                         when (effect.error) {
                             ProfileSnackbarError.ImageRequired -> {
                                 imageRequiredMessage
+                            }
+
+                            ProfileSnackbarError.ProfileCreated -> {
+                                profileCreatedMessage
+                            }
+
+                            ProfileSnackbarError.ProfileUpdated -> {
+                                profileUpdatedMessage
+                            }
+
+                            ProfileSnackbarError.ProfileDeleted -> {
+                                profileDeletedMessage
                             }
 
                             ProfileSnackbarError.Network -> {
