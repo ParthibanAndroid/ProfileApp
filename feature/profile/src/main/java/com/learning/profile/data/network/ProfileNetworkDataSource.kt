@@ -1,4 +1,4 @@
-package com.learning.profile
+package com.learning.profile.data.network
 
 import com.learning.network.NetworkResult
 import com.learning.network.model.CreateProfileRequest
@@ -6,7 +6,7 @@ import com.learning.network.model.ProfileResponse
 import com.learning.network.model.UpdateProfileRequest
 import java.io.File
 
-interface ProfileRepository {
+interface ProfileNetworkDataSource {
     suspend fun getProfile(id: String): NetworkResult<ProfileResponse>
 
     suspend fun createProfile(request: CreateProfileRequest): NetworkResult<ProfileResponse>

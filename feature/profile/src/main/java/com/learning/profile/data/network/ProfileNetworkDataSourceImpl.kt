@@ -1,4 +1,4 @@
-package com.learning.profile
+package com.learning.profile.data.network
 
 import com.learning.network.NetworkResult
 import com.learning.network.api.ProfileApi
@@ -12,11 +12,11 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import javax.inject.Inject
 
-class ProfileRepositoryImpl
+class ProfileNetworkDataSourceImpl
     @Inject
     constructor(
         private val api: ProfileApi,
-    ) : ProfileRepository {
+    ) : ProfileNetworkDataSource {
         override suspend fun getProfile(id: String): NetworkResult<ProfileResponse> =
             safeApiCall {
                 api.getProfile(id = id)
@@ -43,8 +43,11 @@ class ProfileRepositoryImpl
                 val mimeType =
                     when (file.extension.lowercase()) {
                         "jpg", "jpeg" -> "image/jpeg"
+
                         "png" -> "image/png"
+
                         "webp" -> "image/webp"
+
                         else -> throw IllegalArgumentException(
                             "Only JPEG, PNG and WebP images are supported",
                         )
