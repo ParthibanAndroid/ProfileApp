@@ -8,4 +8,9 @@ interface ProfileDatabaseOperations {
         profile: ProfileEntity,
         operation: SyncOperationEntity,
     )
+
+    suspend fun updateProfileAndQueueOperation(
+        profile: ProfileEntity,
+        operation: SyncOperationEntity,
+    )
 }

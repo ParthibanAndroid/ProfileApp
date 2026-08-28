@@ -89,35 +89,85 @@ class ProfileRepositoryImpl
             id: String,
             request: UpdateProfileRequest,
         ): NetworkResult<ProfileResponse> {
-            val profile =
-                Profile(
-                    id = id,
+            val existingProfile =
+                localDataSource.getProfile(id)
+                    ?: return NetworkResult.UnknownError(
+                        IllegalStateException("Profile not found locally: $id"),
+                    )
+
+            val updatedProfile =
+                existingProfile.copy(
                     name = request.name,
                     email = request.email,
                     phone = request.phone,
-                    photoUrl = request.photoUrl,
+                    photoUrl = request.photoUrl ?: existingProfile.photoUrl,
                     updatedAt = Instant.now(),
+                    syncState =
+                        if (existingProfile.syncState == SyncState.PENDING_CREATE) {
+                            SyncState.PENDING_CREATE
+                        } else {
+                            SyncState.PENDING_UPDATE
+                        },
                 )
 
-            val operation =
-                SyncOperationEntity(
-                    profileId = id,
-                    operationType = SyncOperationType.UPDATE,
-                )
+            if (existingProfile.syncState == SyncState.PENDING_CREATE) {
+                // CREATE is already queued.
+                // Just update the local profile with the latest values.
+                localDataSource.updateProfile(updatedProfile)
+            } else {
+                val operation =
+                    SyncOperationEntity(
+                        profileId = id,
+                        operationType = SyncOperationType.UPDATE,
+                    )
 
-            localDataSource.saveProfileAndQueueOperation(
-                profile = profile.toEntity(syncState = SyncState.PENDING_UPDATE),
-                operation = operation,
+                localDataSource.updateProfileAndQueueOperation(
+                    profile = updatedProfile,
+                    operation = operation,
+                )
+            }
+
+            return NetworkResult.Success(
+                data = updatedProfile.toResponse(),
             )
-
-            return NetworkResult.Success(data = profile.toResponse())
         }
 
         override suspend fun uploadProfileImage(
             id: String,
             file: File,
         ): NetworkResult<ProfileResponse> {
-            TODO("Implement")
+            val existingProfile =
+                localDataSource.getProfile(id)
+                    ?: return NetworkResult.UnknownError(
+                        IllegalStateException("Profile not found locally: $id"),
+                    )
+
+            val updatedProfile =
+                existingProfile.copy(
+                    syncState =
+                        if (existingProfile.syncState == SyncState.PENDING_CREATE) {
+                            SyncState.PENDING_CREATE
+                        } else {
+                            SyncState.PENDING_UPDATE
+                        },
+                    updatedAt = Instant.now(),
+                )
+
+            val operation =
+                SyncOperationEntity(
+                    profileId = id,
+                    operationType = SyncOperationType.UPLOAD_IMAGE,
+                    filePath = file.absolutePath,
+                )
+
+            localDataSource.updateProfileAndQueueOperation(
+                profile = updatedProfile,
+                operation = operation,
+            )
+
+            return NetworkResult.Success(
+                data = updatedProfile.toResponse(),
+            )
         }
 
         override suspend fun deleteProfile(id: String): NetworkResult<Unit> {

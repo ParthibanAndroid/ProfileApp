@@ -20,4 +20,14 @@ class ProfileDatabaseOperationsImpl
                 database.syncOperationDao().insert(operation)
             }
         }
+
+        override suspend fun updateProfileAndQueueOperation(
+            profile: ProfileEntity,
+            operation: SyncOperationEntity,
+        ) {
+            database.withTransaction {
+                database.profileDao().updateProfile(profile)
+                database.syncOperationDao().insert(operation)
+            }
+        }
     }

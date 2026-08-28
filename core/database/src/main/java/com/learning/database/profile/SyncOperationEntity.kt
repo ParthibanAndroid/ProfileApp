@@ -15,6 +15,7 @@ data class SyncOperationEntity(
     val operationId: String = UUID.randomUUID().toString(),
     val profileId: String,
     val operationType: SyncOperationType,
+    val filePath: String? = null,
     val createdAt: Instant = Instant.now(),
     val retryCount: Int = 0,
 )

@@ -38,11 +38,16 @@ class ProfileImageFileProviderImpl
                         }
                     }
 
+                val directory =
+                    File(context.filesDir, "profile-images").apply {
+                        mkdirs()
+                    }
+
                 val file =
                     File.createTempFile(
                         "profile_image_",
                         extension,
-                        context.cacheDir,
+                        directory,
                     )
 
                 context.contentResolver.openInputStream(uri).use { input ->

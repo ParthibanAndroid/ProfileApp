@@ -11,9 +11,16 @@ interface ProfileLocalDataSource {
 
     suspend fun insertProfile(profile: ProfileEntity)
 
+    suspend fun updateProfile(profile: ProfileEntity)
+
     suspend fun deleteProfile(profile: ProfileEntity)
 
     suspend fun saveProfileAndQueueOperation(
+        profile: ProfileEntity,
+        operation: SyncOperationEntity,
+    )
+
+    suspend fun updateProfileAndQueueOperation(
         profile: ProfileEntity,
         operation: SyncOperationEntity,
     )
