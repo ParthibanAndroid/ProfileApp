@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 coil = "3.5.0"
 converterGson = "3.0.0"
 coreKtx = "1.19.0"
@@ -14,12 +14,16 @@ kotlin = "2.4.10"
 composeBom = "2026.08.00"
 appcompat = "1.8.0"
 material = "1.14.0"
-ksp = "2.1.0-1.0.29"
+ksp = "2.3.6"
 okhttp = "5.5.0"
 retrofit = "3.0.0"
+room = "2.8.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil3-coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }

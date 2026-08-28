@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
+    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

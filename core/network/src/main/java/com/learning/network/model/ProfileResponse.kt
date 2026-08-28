@@ -7,5 +7,5 @@ data class ProfileResponse(
     val phone: String,
     val photoUrl: String?,
     val updatedAt: String,
-    val version: Int,
+    val version: Long,
 )
