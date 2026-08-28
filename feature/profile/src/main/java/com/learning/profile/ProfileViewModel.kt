@@ -144,7 +144,7 @@ class ProfileViewModel
     fun loadProfile() {
         viewModelScope.launch {
 //            val profileId = _uiState.value.id ?: return@launch
-            val profileId = "cf4bc689-26ae-4a32-b8cb-03a2c5f3ccbb"
+            val profileId = "eccf2cf7-f22e-4d06-82b6-d92aae2cb10c"
 
             _uiState.update {
                 it.copy(isLoading = true)
@@ -249,7 +249,7 @@ class ProfileViewModel
                             )
                         }
 
-//                        uploadSelectedImageIfNeeded(profileId = profile.id, isFrom = "Create")
+                        uploadSelectedImageIfNeeded(profileId = profile.id, isFrom = "Create")
                     }
 
                     is NetworkResult.HttpError -> {
@@ -312,7 +312,7 @@ class ProfileViewModel
                             )
                         }
 
-//                        uploadSelectedImageIfNeeded(profileId = profileId, isFrom = "Update")
+                        uploadSelectedImageIfNeeded(profileId = profileId, isFrom = "Update")
                     }
 
                     is NetworkResult.HttpError -> {

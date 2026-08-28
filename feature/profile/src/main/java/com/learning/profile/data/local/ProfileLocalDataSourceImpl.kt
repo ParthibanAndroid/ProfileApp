@@ -19,6 +19,8 @@ class ProfileLocalDataSourceImpl
 
         override suspend fun insertProfile(profile: ProfileEntity) = profileDao.insertProfile(profile = profile)
 
+        override suspend fun updateProfile(profile: ProfileEntity) = profileDao.updateProfile(profile = profile)
+
         override suspend fun deleteProfile(profile: ProfileEntity) = profileDao.deleteProfile(profile = profile)
 
         override suspend fun saveProfileAndQueueOperation(
@@ -26,6 +28,16 @@ class ProfileLocalDataSourceImpl
             operation: SyncOperationEntity,
         ) {
             databaseOperations.saveProfileAndQueueOperation(
+                profile = profile,
+                operation = operation,
+            )
+        }
+
+        override suspend fun updateProfileAndQueueOperation(
+            profile: ProfileEntity,
+            operation: SyncOperationEntity,
+        ) {
+            databaseOperations.updateProfileAndQueueOperation(
                 profile = profile,
                 operation = operation,
             )
