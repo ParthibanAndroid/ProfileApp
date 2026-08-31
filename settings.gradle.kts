@@ -25,6 +25,8 @@ dependencyResolutionManagement {
 rootProject.name = "ProfileApp"
 include(":app")
 include(":feature:profile")
+include(":feature:profileList")
 include(":core:network")
 include(":core:database")
 include(":core:sync")
+include(":common:profile")

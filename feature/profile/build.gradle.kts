@@ -23,7 +23,6 @@ android {
     buildFeatures {
         compose = true
     }
-
 }
 
 dependencies {
@@ -36,10 +35,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
-    // Added core network, database and sync modules.
+    // Profile data module (includes network, database, and sync)
+    implementation(project(":common:profile"))
+    
+    // Network module (needed for NetworkResult, Request/Response models in ViewModel)
     implementation(project(":core:network"))
-    implementation(project(":core:database"))
-    implementation(project(":core:sync"))
 
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)

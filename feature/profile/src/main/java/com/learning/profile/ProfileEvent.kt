@@ -23,7 +23,9 @@ sealed interface ProfileEvent {
         val uri: Uri,
     ) : ProfileEvent
 
-    data object LoadProfile : ProfileEvent
+    data class LoadProfile(
+        val profileId: String?,
+    ) : ProfileEvent
 
     data object SaveClicked : ProfileEvent
 

@@ -1,21 +1,24 @@
 package com.learning.profile.di
 
+import android.content.Context
 import com.learning.profile.ProfileImageFileProvider
 import com.learning.profile.ProfileImageFileProviderImpl
-import com.learning.profile.data.local.ProfileLocalDataSource
-import com.learning.profile.data.local.ProfileLocalDataSourceImpl
-import com.learning.profile.data.network.ProfileNetworkDataSource
-import com.learning.profile.data.network.ProfileNetworkDataSourceImpl
-import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dagger.hilt.android.components.ViewModelComponent
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.android.scopes.ViewModelScoped
 
 @Module
-@InstallIn(SingletonComponent::class)
-abstract class ProfileModule {
-    @Binds
-    @Singleton
-    abstract fun bindProfileImageFileProvider(impl: ProfileImageFileProviderImpl): ProfileImageFileProvider
+@InstallIn(ViewModelComponent::class)
+object ProfileModule {
+
+    @Provides
+    @ViewModelScoped
+    fun provideProfileImageFileProvider(
+        @ApplicationContext context: Context,
+    ): ProfileImageFileProvider {
+        return ProfileImageFileProviderImpl(context)
+    }
 }
