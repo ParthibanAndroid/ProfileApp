@@ -144,7 +144,7 @@ class ProfileViewModel
     fun loadProfile() {
         viewModelScope.launch {
 //            val profileId = _uiState.value.id ?: return@launch
-            val profileId = "eccf2cf7-f22e-4d06-82b6-d92aae2cb10c"
+            val profileId = "bf1e1221-949e-46d5-98db-585d4f16f5cd"
 
             _uiState.update {
                 it.copy(isLoading = true)
@@ -229,6 +229,7 @@ class ProfileViewModel
 
                 val request =
                     CreateProfileRequest(
+                        id = state.id ?: "",
                         name = state.name,
                         email = state.email,
                         phone = state.phone,
@@ -433,15 +434,13 @@ class ProfileViewModel
                         repository.uploadProfileImage(id = profileId, file = file)
                 ) {
                     is NetworkResult.Success -> {
-                        val updatedProfile = uploadResult.data
-
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                name = updatedProfile.name,
-                                email = updatedProfile.email,
-                                phone = updatedProfile.phone,
-                                photoUrl = updatedProfile.photoUrl,
+                                name = "",
+                                email = "",
+                                phone = "",
+                                photoUrl = null,
                                 selectedImageUri = null,
                             )
                         }

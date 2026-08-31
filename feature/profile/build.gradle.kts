@@ -36,8 +36,10 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
+    // Added core network, database and sync modules.
     implementation(project(":core:network"))
     implementation(project(":core:database"))
+    implementation(project(":core:sync"))
 
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)

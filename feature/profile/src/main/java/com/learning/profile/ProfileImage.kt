@@ -26,7 +26,7 @@ fun ProfileImage(
     selectedImageUri: Uri?,
     onProfileImageClick: () -> Unit,
 ) {
-    val imageUrl = "http://192.168.0.103:8080$photoUrl"
+    val imageUrl = "http://192.168.0.104:8080$photoUrl"
 
     AsyncImage(
         modifier =

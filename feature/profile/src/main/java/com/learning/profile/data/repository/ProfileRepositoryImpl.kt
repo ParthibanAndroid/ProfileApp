@@ -17,6 +17,7 @@ import com.learning.profile.data.mapper.toResponse
 import com.learning.profile.data.network.ProfileNetworkDataSource
 import com.learning.profile.domain.model.Profile
 import com.learning.profile.domain.repository.ProfileRepository
+import com.learning.sync.ProfileSyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -29,6 +30,7 @@ class ProfileRepositoryImpl
     constructor(
         private val localDataSource: ProfileLocalDataSource,
         private val networkDataSource: ProfileNetworkDataSource,
+        private val syncScheduler: ProfileSyncScheduler,
     ) : ProfileRepository {
         override fun observeProfile(id: String): Flow<ProfileResponse?> =
             localDataSource
@@ -82,6 +84,8 @@ class ProfileRepositoryImpl
                 operation = operation,
             )
 
+            syncScheduler.schedule()
+
             return NetworkResult.Success(data = profile.toResponse())
         }
 
@@ -92,7 +96,7 @@ class ProfileRepositoryImpl
             val existingProfile =
                 localDataSource.getProfile(id)
                     ?: return NetworkResult.UnknownError(
-                        IllegalStateException("Profile not found locally: $id"),
+                        IllegalStateException("Profile not found: $id"),
                     )
 
             val updatedProfile =
@@ -100,36 +104,65 @@ class ProfileRepositoryImpl
                     name = request.name,
                     email = request.email,
                     phone = request.phone,
-                    photoUrl = request.photoUrl ?: existingProfile.photoUrl,
+                    photoUrl = request.photoUrl,
                     updatedAt = Instant.now(),
-                    syncState =
-                        if (existingProfile.syncState == SyncState.PENDING_CREATE) {
-                            SyncState.PENDING_CREATE
-                        } else {
-                            SyncState.PENDING_UPDATE
-                        },
                 )
 
-            if (existingProfile.syncState == SyncState.PENDING_CREATE) {
-                // CREATE is already queued.
-                // Just update the local profile with the latest values.
-                localDataSource.updateProfile(updatedProfile)
-            } else {
-                val operation =
-                    SyncOperationEntity(
-                        profileId = id,
-                        operationType = SyncOperationType.UPDATE,
+            return when (existingProfile.syncState) {
+                SyncState.PENDING_CREATE -> {
+                    localDataSource.updatePendingCreateProfile(
+                        profile = updatedProfile,
                     )
 
-                localDataSource.updateProfileAndQueueOperation(
-                    profile = updatedProfile,
-                    operation = operation,
-                )
-            }
+                    syncScheduler.schedule()
 
-            return NetworkResult.Success(
-                data = updatedProfile.toResponse(),
-            )
+                    NetworkResult.Success(
+                        data = updatedProfile.toResponse(),
+                    )
+                }
+
+                SyncState.SYNCED -> {
+                    val operation =
+                        SyncOperationEntity(
+                            profileId = id,
+                            operationType = SyncOperationType.UPDATE,
+                        )
+
+                    localDataSource.updateProfileAndQueueOperation(
+                        profile =
+                            updatedProfile.copy(
+                                syncState = SyncState.PENDING_UPDATE,
+                            ),
+                        operation = operation,
+                    )
+
+                    syncScheduler.schedule()
+
+                    NetworkResult.Success(
+                        data = updatedProfile.toResponse(),
+                    )
+                }
+
+                SyncState.PENDING_UPDATE -> {
+                    localDataSource.updatePendingUpdateProfile(
+                        profile = updatedProfile,
+                    )
+
+                    syncScheduler.schedule()
+
+                    NetworkResult.Success(
+                        data = updatedProfile.toResponse(),
+                    )
+                }
+
+                SyncState.PENDING_DELETE -> {
+                    NetworkResult.UnknownError(
+                        IllegalStateException(
+                            "Cannot update a profile pending deletion",
+                        ),
+                    )
+                }
+            }
         }
 
         override suspend fun uploadProfileImage(
@@ -165,25 +198,95 @@ class ProfileRepositoryImpl
                 operation = operation,
             )
 
+            localDataSource.replaceImageOperation(
+                operation = operation,
+            )
+
+            syncScheduler.schedule()
+
             return NetworkResult.Success(
                 data = updatedProfile.toResponse(),
             )
         }
 
         override suspend fun deleteProfile(id: String): NetworkResult<Unit> {
-            val entity = localDataSource.getProfile(id = id)
+            val entity =
+                localDataSource.getProfile(id = id)
+                    ?: return NetworkResult.Success(Unit)
 
-            entity?.let {
-                val operation =
-                    SyncOperationEntity(
-                        profileId = id,
-                        operationType = SyncOperationType.DELETE,
+            when (entity.syncState) {
+                SyncState.PENDING_CREATE -> {
+                    val createOperation =
+                        localDataSource.getOperation(
+                            profileId = id,
+                            operationType = SyncOperationType.CREATE,
+                        )
+
+                    if (createOperation != null) {
+                        localDataSource.cancelPendingCreate(
+                            profile = entity,
+                            operation = createOperation,
+                        )
+                    }
+                }
+
+                SyncState.SYNCED -> {
+                    val operation =
+                        SyncOperationEntity(
+                            profileId = id,
+                            operationType = SyncOperationType.DELETE,
+                        )
+
+                    localDataSource.markProfilePendingDeleteAndQueueOperation(
+                        profile =
+                            entity.copy(
+                                syncState = SyncState.PENDING_DELETE,
+                            ),
+                        operation = operation,
                     )
 
-                localDataSource.saveProfileAndQueueOperation(
-                    profile = entity.copy(syncState = SyncState.PENDING_DELETE),
-                    operation = operation,
-                )
+                    syncScheduler.schedule()
+                }
+
+                SyncState.PENDING_UPDATE -> {
+                    val updateOperation =
+                        localDataSource.getOperation(
+                            profileId = id,
+                            operationType = SyncOperationType.UPDATE,
+                        )
+
+                    val deleteOperation =
+                        SyncOperationEntity(
+                            profileId = id,
+                            operationType = SyncOperationType.DELETE,
+                        )
+
+                    if (updateOperation != null) {
+                        localDataSource.replaceUpdateWithDelete(
+                            profile =
+                                entity.copy(
+                                    syncState = SyncState.PENDING_DELETE,
+                                ),
+                            updateOperation = updateOperation,
+                            deleteOperation = deleteOperation,
+                        )
+                    } else {
+                        localDataSource.markProfilePendingDeleteAndQueueOperation(
+                            profile =
+                                entity.copy(
+                                    syncState = SyncState.PENDING_DELETE,
+                                ),
+                            operation = deleteOperation,
+                        )
+                    }
+
+                    syncScheduler.schedule()
+                }
+
+                SyncState.PENDING_DELETE -> {
+                    // Delete is already queued.
+                    // Nothing to do.
+                }
             }
 
             return NetworkResult.Success(Unit)
