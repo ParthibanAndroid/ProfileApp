@@ -5,61 +5,66 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.learning.database.profile.SyncOperationDao
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
 @HiltWorker
 class ProfileSyncWorker
-@AssistedInject
-constructor(
-    @Assisted appContext: Context,
-    @Assisted params: WorkerParameters,
-    private val syncHandler: ProfileSyncHandler,
-) : CoroutineWorker(
-    appContext = appContext,
-    params = params,
-) {
+    @AssistedInject
+    constructor(
+        @Assisted appContext: Context,
+        @Assisted params: WorkerParameters,
+        private val syncHandler: ProfileSyncHandler,
+    ) : CoroutineWorker(
+            appContext = appContext,
+            params = params,
+        ) {
+        companion object {
+            private const val TAG = "ProfileSyncWorker"
+        }
 
-    companion object {
-        private const val TAG = "ProfileSyncWorker"
-    }
+        override suspend fun doWork(): Result {
+            Log.d(
+                TAG,
+                "doWork() STARTED - id=$id",
+            )
 
-    override suspend fun doWork(): Result {
+            return when (val result = syncHandler.sync()) {
+                is SyncResult.Success -> {
+                    Log.d(
+                        TAG,
+                        "Sync completed successfully",
+                    )
 
-        Log.d(
-            TAG,
-            "doWork() STARTED - id=$id",
-        )
+                    Result.success()
+                }
 
-        return when (val result = syncHandler.sync()) {
+                is SyncResult.Retry -> {
+                    Log.d(
+                        TAG,
+                        "Temporary failure. WorkManager will retry.",
+                    )
 
-            SyncResult.Success -> {
-                Log.d(
-                    TAG,
-                    "Sync completed successfully",
-                )
+                    Result.retry()
+                }
 
-                Result.success()
-            }
+                is SyncResult.Failure -> {
+                    Log.e(
+                        TAG,
+                        "Permanent failure: ${result.message}",
+                    )
 
-            SyncResult.Retry -> {
-                Log.d(
-                    TAG,
-                    "Temporary failure. WorkManager will retry.",
-                )
+                    Result.failure()
+                }
 
-                Result.retry()
-            }
+                else -> {
+                    Log.e(
+                        TAG,
+                        "Unknown sync result: $result",
+                    )
 
-            is SyncResult.Failure -> {
-                Log.e(
-                    TAG,
-                    "Permanent failure: ${result.message}",
-                )
-
-                Result.failure()
+                    Result.failure()
+                }
             }
         }
     }
-}

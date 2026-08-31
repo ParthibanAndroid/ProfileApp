@@ -3,11 +3,11 @@ package com.learning.profile
 sealed interface ProfileSnackbarError {
     data object ImageRequired : ProfileSnackbarError
 
-    data object ProfileCreated: ProfileSnackbarError
+    data object ProfileCreated : ProfileSnackbarError
 
-    data object ProfileUpdated: ProfileSnackbarError
+    data object ProfileUpdated : ProfileSnackbarError
 
-    data object ProfileDeleted: ProfileSnackbarError
+    data object ProfileDeleted : ProfileSnackbarError
 
     data object Network : ProfileSnackbarError
 

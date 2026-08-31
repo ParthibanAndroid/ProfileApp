@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProfileDao {
-    @Query("SELECT * FROM profile WHERE id = :id")
+    @Query("SELECT * FROM profiles WHERE id = :id")
     fun observeProfile(id: String): Flow<ProfileEntity?>
 
-    @Query("SELECT * FROM profile WHERE id =:id")
+    @Query("SELECT * FROM profiles ORDER BY updatedAt DESC")
+    fun observeProfiles(): Flow<List<ProfileEntity>>
+
+    @Query("SELECT * FROM profiles WHERE id =:id")
     suspend fun getProfile(id: String): ProfileEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -25,6 +28,6 @@ interface ProfileDao {
     @Delete
     suspend fun deleteProfile(profile: ProfileEntity)
 
-    @Query("DELETE FROM profile WHERE id = :id")
+    @Query("DELETE FROM profiles WHERE id = :id")
     suspend fun deleteProfileById(id: String)
 }

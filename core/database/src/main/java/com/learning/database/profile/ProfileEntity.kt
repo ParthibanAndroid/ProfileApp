@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.Instant
 
-@Entity(tableName = "profile")
+@Entity(tableName = "profiles")
 data class ProfileEntity(
     @PrimaryKey
     val id: String,
