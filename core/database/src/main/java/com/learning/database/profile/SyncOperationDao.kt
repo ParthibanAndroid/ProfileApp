@@ -29,4 +29,17 @@ interface SyncOperationDao {
         """,
     )
     suspend fun incrementRetryCount(operationId: String)
+
+    @Query(
+        """
+    SELECT * FROM sync_operations
+    WHERE profileId = :profileId
+    AND operationType = :operationType
+    LIMIT 1
+    """,
+    )
+    suspend fun getOperation(
+        profileId: String,
+        operationType: SyncOperationType,
+    ): SyncOperationEntity?
 }

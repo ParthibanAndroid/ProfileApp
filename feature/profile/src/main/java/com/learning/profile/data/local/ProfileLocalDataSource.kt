@@ -2,6 +2,7 @@ package com.learning.profile.data.local
 
 import com.learning.database.profile.ProfileEntity
 import com.learning.database.profile.SyncOperationEntity
+import com.learning.database.profile.SyncOperationType
 import kotlinx.coroutines.flow.Flow
 
 interface ProfileLocalDataSource {
@@ -24,4 +25,41 @@ interface ProfileLocalDataSource {
         profile: ProfileEntity,
         operation: SyncOperationEntity,
     )
+
+    suspend fun updatePendingCreateProfile(profile: ProfileEntity)
+
+    suspend fun updatePendingUpdateProfile(profile: ProfileEntity)
+
+    suspend fun markProfileSyncedAndDeleteOperation(
+        profile: ProfileEntity,
+        operation: SyncOperationEntity,
+    )
+
+    suspend fun markProfilePendingDeleteAndQueueOperation(
+        profile: ProfileEntity,
+        operation: SyncOperationEntity,
+    )
+
+    suspend fun deleteProfileAndOperation(
+        profileId: String,
+        operation: SyncOperationEntity,
+    )
+
+    suspend fun cancelPendingCreate(
+        profile: ProfileEntity,
+        operation: SyncOperationEntity,
+    )
+
+    suspend fun getOperation(
+        profileId: String,
+        operationType: SyncOperationType,
+    ): SyncOperationEntity?
+
+    suspend fun replaceUpdateWithDelete(
+        profile: ProfileEntity,
+        updateOperation: SyncOperationEntity,
+        deleteOperation: SyncOperationEntity,
+    )
+
+    suspend fun replaceImageOperation(operation: SyncOperationEntity)
 }

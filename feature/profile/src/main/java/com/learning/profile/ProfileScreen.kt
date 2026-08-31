@@ -225,8 +225,10 @@ private fun ProfileContent(
         ProfileTextInputField(
             placeholderText = phoneLabel,
             value = phone,
-            onValueChange = {
-                event(ProfileEvent.PhoneChanged(it))
+            onValueChange = { value ->
+                if (value.length <= 10) {
+                    event(ProfileEvent.PhoneChanged(value))
+                }
             },
             isError = errors.containsKey(ProfileField.PHONE),
             error =

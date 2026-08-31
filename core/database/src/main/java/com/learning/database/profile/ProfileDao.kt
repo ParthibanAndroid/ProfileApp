@@ -24,4 +24,7 @@ interface ProfileDao {
 
     @Delete
     suspend fun deleteProfile(profile: ProfileEntity)
+
+    @Query("DELETE FROM profile WHERE id = :id")
+    suspend fun deleteProfileById(id: String)
 }
